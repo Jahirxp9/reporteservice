@@ -2,16 +2,21 @@
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 
-COPY .mvn/ .mvn
+# Copy Maven wrapper configuration and build files
+COPY .mvn .mvn
 COPY mvnw pom.xml ./
-RUN chmod +x mvnw
 
+# Normalize line endings (CRLF to LF) for Linux compatibility and grant execution permissions
+RUN tr -d '\r' < mvnw > mvnw.tmp && mv mvnw.tmp mvnw && chmod +x mvnw
+
+# Pre-fetch dependencies
 RUN ./mvnw dependency:go-offline -B
 
+# Copy source code and build production package
 COPY src ./src
 RUN ./mvnw package -DskipTests
 
-# Stage 2: Runtime environment with Java 21 JRE
+# Stage 2: Production runtime image with Java 21 JRE
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
